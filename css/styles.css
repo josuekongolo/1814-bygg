@@ -213,14 +213,14 @@ h4 { font-size: 1.25rem; }
 }
 
 .header__logo-img {
-  height: 56px;
+  height: 72px;
   width: auto;
   object-fit: contain;
 }
 
 @media (min-width: 768px) {
   .header__logo-img {
-    height: 64px;
+    height: 80px;
   }
 }
 
@@ -1741,7 +1741,7 @@ h4 { font-size: 1.25rem; }
 }
 
 .footer__logo-img {
-  height: 60px;
+  height: 76px;
   width: auto;
   object-fit: contain;
 }
