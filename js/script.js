@@ -8,7 +8,123 @@ document.addEventListener('DOMContentLoaded', function() {
   initScrollAnimations();
   initContactForm();
   initLightbox();
+  initProjectCarousel();
 });
+
+/**
+ * Project Carousel - auto-advancing, swipeable via scroll-snap
+ */
+function initProjectCarousel() {
+  const carousel = document.querySelector('.project-carousel');
+  if (!carousel) return;
+
+  const track = carousel.querySelector('.project-carousel__track');
+  const slides = Array.from(track.querySelectorAll('.project-carousel__slide'));
+  const prevBtn = carousel.querySelector('.project-carousel__btn--prev');
+  const nextBtn = carousel.querySelector('.project-carousel__btn--next');
+  const dotsWrap = carousel.querySelector('.project-carousel__dots');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const interval = 5000;
+
+  if (!slides.length) return;
+
+  let timer = null;
+  let paused = false;
+
+  function step() {
+    return slides.length > 1 ? slides[1].offsetLeft - slides[0].offsetLeft : track.clientWidth;
+  }
+
+  function positions() {
+    const visible = Math.max(1, Math.round(track.clientWidth / step()));
+    return Math.max(1, slides.length - visible + 1);
+  }
+
+  function currentIndex() {
+    return Math.round(track.scrollLeft / step());
+  }
+
+  function goTo(index) {
+    const count = positions();
+    const target = (index + count) % count;
+    track.scrollTo({ left: target * step(), behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+
+  function buildDots() {
+    dotsWrap.innerHTML = '';
+    for (let i = 0; i < positions(); i++) {
+      const dot = document.createElement('button');
+      dot.className = 'project-carousel__dot';
+      dot.setAttribute('aria-label', 'Gå til bilde ' + (i + 1));
+      dot.addEventListener('click', function() {
+        goTo(i);
+        restart();
+      });
+      dotsWrap.appendChild(dot);
+    }
+    updateDots();
+  }
+
+  function updateDots() {
+    const active = currentIndex();
+    Array.from(dotsWrap.children).forEach(function(dot, i) {
+      dot.classList.toggle('project-carousel__dot--active', i === active);
+    });
+  }
+
+  function start() {
+    if (reduceMotion || timer) return;
+    timer = setInterval(function() {
+      if (!paused && !document.hidden) goTo(currentIndex() + 1);
+    }, interval);
+  }
+
+  function restart() {
+    clearInterval(timer);
+    timer = null;
+    start();
+  }
+
+  prevBtn.addEventListener('click', function() {
+    goTo(currentIndex() - 1);
+    restart();
+  });
+
+  nextBtn.addEventListener('click', function() {
+    goTo(currentIndex() + 1);
+    restart();
+  });
+
+  let scrollTicking = false;
+  track.addEventListener('scroll', function() {
+    if (!scrollTicking) {
+      window.requestAnimationFrame(function() {
+        updateDots();
+        scrollTicking = false;
+      });
+      scrollTicking = true;
+    }
+  }, { passive: true });
+
+  carousel.addEventListener('mouseenter', function() { paused = true; });
+  carousel.addEventListener('mouseleave', function() { paused = false; });
+  carousel.addEventListener('focusin', function() { paused = true; });
+  carousel.addEventListener('focusout', function() { paused = false; });
+  track.addEventListener('touchstart', function() { paused = true; }, { passive: true });
+  track.addEventListener('touchend', function() {
+    paused = false;
+    restart();
+  }, { passive: true });
+
+  let resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(buildDots, 150);
+  });
+
+  buildDots();
+  start();
+}
 
 /**
  * Header - Sticky shadow on scroll
